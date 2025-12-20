@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import ImageManager from '../comp/ImageManager';
 import HeroImageManager from '../comp/HeroImageManager';
 import VideoManager from '../comp/VideoManager';
@@ -60,6 +60,64 @@ const AdminDashboard = () => {
   const { user, logout, updateProfile } = useContext(AuthContext);
   const navigate = useNavigate();
   const avatarUrl = user?.avatar;
+  const [messageCount, setMessageCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    let timerId = null;
+
+    async function fetchUnread() {
+      try {
+        const endpoints = [
+          '/api/contact-messages/unread-count',
+          '/api/contact-messages/unread',
+          '/api/contact-messages?unread=true',
+          '/api/contact-messages/count?unread=true',
+          '/api/messages/unread-count',
+          '/api/messages/unread',
+        ];
+
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep);
+            if (!res.ok) continue;
+            const data = await res.json();
+            let count = 0;
+
+            if (typeof data === 'number') {
+              count = data;
+            } else if (Array.isArray(data)) {
+              // If items have a `read` flag, count unread
+              if (data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'read')) {
+                count = data.filter((m) => !m.read).length;
+              } else {
+                count = data.length;
+              }
+            } else if (data && typeof data === 'object') {
+              count = data.unread || data.unreadCount || data.unread_count || data.count || data.total || 0;
+            }
+
+            if (mounted) setMessageCount(Number(count) || 0);
+            break;
+          } catch (err) {
+            continue;
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    // initial fetch
+    fetchUnread();
+    // poll every 5s for near real-time updates
+    timerId = setInterval(fetchUnread, 5000);
+
+    return () => {
+      mounted = false;
+      if (timerId) clearInterval(timerId);
+    };
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -95,9 +153,28 @@ const AdminDashboard = () => {
           </button>
 
           {/* Welcome Section - Mobile Only */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500 truncate">Welcome back</p>
-            <h1 className="text-lg font-semibold text-gray-900 truncate">Hi {user?.name || 'Admin'}, let's build.</h1>
+          <div className="flex-1 min-w-0 flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 truncate">Welcome back</p>
+              <h1 className="text-lg font-semibold text-gray-900 truncate">Hi {user?.name || 'Admin'}, let's build.</h1>
+            </div>
+            <button
+              aria-label="View messages"
+              className="ml-3 relative w-9 h-9 flex items-center justify-center rounded-full bg-white/80 hover:bg-white"
+              onClick={() => {
+                setActiveTab('myfan');
+                setActiveSubTab('messages');
+                closeMobileMenu();
+                setMessageCount(0);
+              }}
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {messageCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">{messageCount}</span>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -112,17 +189,18 @@ const AdminDashboard = () => {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-80 bg-white bg-opacity-95 backdrop-blur-sm shadow-2xl z-[999] transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-[#071022] to-[#071427] text-white backdrop-blur-sm shadow-2xl z-[999] transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ borderRight: '4px solid rgba(97,218,251,0.18)' }}
       >
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Mahlet Studio</p>
-                <h2 className="text-2xl font-semibold text-gray-900 mt-2">Admin Hub</h2>
-                <p className="text-sm text-gray-500 mt-1">Curate every experience.</p>
+                <p className="text-xs uppercase tracking-[0.4em] text-gray-300">Mahlet Studio</p>
+                <h2 className="text-2xl font-semibold text-white mt-2">Admin Hub</h2>
+                <p className="text-sm text-gray-300 mt-1">Curate every experience.</p>
               </div>
               <button
                 onClick={closeMobileMenu}
@@ -151,12 +229,12 @@ const AdminDashboard = () => {
                         closeMobileMenu();
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-300 ${isActive
-                        ? 'bg-[#61dafb] border-[#61dafb] text-white shadow-lg shadow-[#61dafb]/30'
-                        : 'border-white/50 text-gray-600 hover:border-[#61dafb] hover:bg-white/60'
+                        ? 'bg-[#61dafb] border-[#61dafb] text-[#06283D] shadow-lg shadow-[#61dafb]/30'
+                        : 'border-transparent text-gray-300 hover:border-[#61dafb]/30 hover:bg-white/10'
                         }`}
                     >
                       <p className="font-semibold">{item.label}</p>
-                      <p className="text-xs mt-1 opacity-80">{item.description}</p>
+                      <p className="text-xs mt-1 opacity-80 text-gray-300">{item.description}</p>
                     </button>
                     {isActive && item.subTabs && item.subTabs.length > 0 && (
                       <div className="mt-2 ml-4 space-y-2">
@@ -169,7 +247,7 @@ const AdminDashboard = () => {
                             }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${activeSubTab === subTab.id
                                 ? 'bg-[#61dafb]/20 text-[#61dafb] font-medium border border-[#61dafb]/30'
-                                : 'text-gray-600 hover:bg-white/40'
+                                : 'text-gray-300 hover:bg-white/10'
                               }`}
                           >
                             {subTab.label}
@@ -183,7 +261,7 @@ const AdminDashboard = () => {
             </nav>
           </div>
 
-          <div className="p-6 border-t border-gray-200 bg-white/70">
+          <div className="p-6 border-t border-white/10 bg-transparent">
             <div className="relative">
               <button
                 type="button"
@@ -202,9 +280,9 @@ const AdminDashboard = () => {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">Signed in</p>
-                  <p className="text-base font-semibold text-gray-900">{user?.name || 'Admin'}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">System Admin</p>
+                  <p className="text-sm text-gray-300">Signed in</p>
+                  <p className="text-base font-semibold text-white">{user?.name || 'Admin'}</p>
+                  <p className="text-xs text-gray-300 mt-0.5">System Admin</p>
                 </div>
               </button>
 
@@ -242,12 +320,12 @@ const AdminDashboard = () => {
 
       <div className="relative z-10 flex flex-col lg:flex-row gap-6">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-72 bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/30 flex-col justify-between">
+        <aside className="hidden lg:flex w-72 bg-gradient-to-b from-[#071022] to-[#071427] text-white rounded-2xl shadow-2xl flex-col justify-between" style={{ border: '3px solid rgba(97,218,251,0.12)' }}>
           <div className="p-6 space-y-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Mahlet Studio</p>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-2">Admin Hub</h2>
-              <p className="text-sm text-gray-500 mt-1">Curate every experience.</p>
+              <p className="text-xs uppercase tracking-[0.4em] text-gray-300">Mahlet Studio</p>
+              <h2 className="text-2xl font-semibold text-white mt-2">Admin Hub</h2>
+              <p className="text-sm text-gray-300 mt-1">Curate every experience.</p>
             </div>
             <nav className="space-y-3">
               {navItems.map((item) => {
@@ -262,12 +340,12 @@ const AdminDashboard = () => {
                         }
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-300 ${isActive
-                        ? 'bg-[#61dafb] border-[#61dafb] text-white shadow-lg shadow-[#61dafb]/30'
-                        : 'border-white/50 text-gray-600 hover:border-[#61dafb] hover:bg-white/60'
+                        ? 'bg-[#61dafb] border-[#61dafb] text-[#06283D] shadow-lg shadow-[#61dafb]/30'
+                        : 'border-transparent text-gray-300 hover:border-[#61dafb]/30 hover:bg-white/10'
                         }`}
                     >
                       <p className="font-semibold">{item.label}</p>
-                      <p className="text-xs mt-1 opacity-80">{item.description}</p>
+                      <p className="text-xs mt-1 opacity-80 text-gray-300">{item.description}</p>
                     </button>
                     {isActive && item.subTabs && item.subTabs.length > 0 && (
                       <div className="mt-2 ml-4 space-y-2">
@@ -277,7 +355,7 @@ const AdminDashboard = () => {
                             onClick={() => setActiveSubTab(subTab.id)}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${activeSubTab === subTab.id
                                 ? 'bg-[#61dafb]/20 text-[#61dafb] font-medium border border-[#61dafb]/30'
-                                : 'text-gray-600 hover:bg-white/40'
+                                : 'text-gray-300 hover:bg-white/10'
                               }`}
                           >
                             {subTab.label}
@@ -290,7 +368,7 @@ const AdminDashboard = () => {
               })}
             </nav>
           </div>
-          <div className="p-6 border-t border-white/40 bg-white/70 rounded-b-2xl">
+          <div className="p-6 border-t border-white/10 bg-transparent rounded-b-2xl">
             <div className="relative">
               <button
                 type="button"
@@ -309,9 +387,9 @@ const AdminDashboard = () => {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">Signed in</p>
-                  <p className="text-base font-semibold text-gray-900">{user?.name || 'Admin'}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">System Admin</p>
+                  <p className="text-sm text-gray-300">Signed in</p>
+                  <p className="text-base font-semibold text-white">{user?.name || 'Admin'}</p>
+                  <p className="text-xs text-gray-300 mt-0.5">System Admin</p>
                 </div>
               </button>
 
@@ -355,7 +433,8 @@ const AdminDashboard = () => {
               <h1 className="text-3xl font-semibold text-gray-900">Hi {user?.name || 'Admin'}, let's build.</h1>
               <p className="text-base text-gray-600 mt-1">Select a panel to start managing content.</p>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-wrap gap-3">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -373,6 +452,23 @@ const AdminDashboard = () => {
                   {item.label}
                 </button>
               ))}
+              </div>
+              <button
+                aria-label="View messages"
+                className="relative w-10 h-10 flex items-center justify-center rounded-full bg-white/80 hover:bg-white"
+                onClick={() => {
+                  setActiveTab('myfan');
+                  setActiveSubTab('messages');
+                  setMessageCount(0);
+                }}
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {messageCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">{messageCount}</span>
+                )}
+              </button>
             </div>
           </header>
 

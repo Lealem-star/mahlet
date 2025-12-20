@@ -58,7 +58,7 @@ const Contact = () => {
                     {/* Right: Content & Form */}
                     <div className="space-y-6">
                         <div className="space-y-4">
-                            <p className="text-4xl md:text-5xl font-extrabold leading-tight text-black">Partnership Call</p>
+                            {/* <p className="text-4xl md:text-5xl font-extrabold leading-tight text-black">Partnership Call</p> */}
                             <h1 className="text-xl md:text-2xl font-bold uppercase tracking-[0.35em] text-black">
                                 Let's talk about<br />your project
                             </h1>
