@@ -4,10 +4,8 @@ let isConnected = false;
 
 const connectDB = async () => {
   try {
-    // Ensure .env is loaded
-    require('dotenv').config();
-    
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mernapp';
+    console.log(`Attempting to connect with MONGODB_URI: ${MONGODB_URI}`);
     
     // Validate URI is a string
     if (typeof MONGODB_URI !== 'string' || !MONGODB_URI.trim()) {

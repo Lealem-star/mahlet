@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { showConfirmationToast } from '../../utils/toastUtils'; // Added showConfirmationToast import
 import api from '../../config/api';
 
 const SubscriberManager = () => {
@@ -34,15 +37,15 @@ const SubscriberManager = () => {
         params.search = searchTerm;
       }
 
-      const response = await api.get('/api/subscribers/admin/subscribers', { params });
+      const response = await api.get('/api/subscribers/admin', { params });
       setSubscribers(response.data);
     } catch (error) {
       console.error('Error fetching subscribers:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        // toast.error('Session expired. Please login again.'); // Original toast error
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch subscribers');
+        // toast.error('Failed to fetch subscribers'); // Original toast error
       }
     } finally {
       setLoading(false);
@@ -82,31 +85,31 @@ const SubscriberManager = () => {
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
       };
 
-      await api.put(`/api/subscribers/admin/subscribers/${editingSubscriber._id}`, updateData);
-      alert('Mailing list entry updated successfully!');
+      await api.put(`/api/subscribers/admin/${editingSubscriber._id}`, updateData);
+      toast.success('Mailing list entry updated successfully!');
       setEditingSubscriber(null);
       fetchSubscribers();
       fetchStats();
     } catch (error) {
       console.error('Error updating mailing list entry:', error);
-      alert('Failed to update mailing list entry');
+      // toast.error('Failed to update mailing list entry'); // Original toast error
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this mailing list entry?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/api/subscribers/admin/subscribers/${id}`);
-      alert('Mailing list entry deleted successfully!');
-      fetchSubscribers();
-      fetchStats();
-    } catch (error) {
-      console.error('Error deleting mailing list entry:', error);
-      alert('Failed to delete mailing list entry');
-    }
+  const handleDelete = (id) => { // Removed 'async' and 'window.confirm'
+    showConfirmationToast('Are you sure you want to delete this mailing list entry?', async (closeToast) => {
+      try {
+        await api.delete(`/api/subscribers/admin/${id}`);
+        toast.success('Mailing list entry deleted successfully!');
+        fetchSubscribers();
+        fetchStats();
+      } catch (error) {
+        console.error('Error deleting mailing list entry:', error);
+        toast.error('Failed to delete mailing list entry');
+      } finally {
+        closeToast();
+      }
+    });
   };
 
   const exportSubscribers = () => {
@@ -131,36 +134,35 @@ const SubscriberManager = () => {
 
   const handleBroadcastSubmit = async (e) => {
     e.preventDefault();
-    if (!window.confirm(`Are you sure you want to send this message to ${broadcastForm.sendToAll ? 'ALL' : 'FANS'}?`)) {
-      return;
-    }
-
-    setSendingBroadcast(true);
-    try {
-      const response = await api.post('/api/subscribers/admin/broadcast', broadcastForm);
-      
-      // Show detailed results
-      let message = response.data.message || 'Broadcast sent successfully!';
-      if (response.data.results && response.data.results.errors && response.data.results.errors.length > 0) {
-        const errorDetails = response.data.results.errors.map(e => `${e.email}: ${e.error}`).join('\n');
-        message += `\n\nErrors:\n${errorDetails}`;
-        console.error('Broadcast errors:', response.data.results.errors);
+    showConfirmationToast(`Are you sure you want to send this message to ${broadcastForm.sendToAll ? 'ALL' : 'FANS'}?`, async (closeToast) => {
+      setSendingBroadcast(true);
+      try {
+        const response = await api.post('/api/subscribers/admin/broadcast', broadcastForm);
+        
+        // Show detailed results
+        let message = response.data.message || 'Broadcast sent successfully!';
+        if (response.data.results && response.data.results.errors && response.data.results.errors.length > 0) {
+          const errorDetails = response.data.results.errors.map(e => `${e.email}: ${e.error}`).join('\n');
+          message += `\n\nErrors:\n${errorDetails}`;
+          console.error('Broadcast errors:', response.data.results.errors);
+        }
+        
+        toast.info(message);
+        
+        // Only close modal if all emails sent successfully
+        if (response.data.results && response.data.results.failed === 0) {
+          setShowBroadcastModal(false);
+          setBroadcastForm({ subject: '', message: '', sendToAll: false });
+        }
+      } catch (error) {
+        console.error('Error sending broadcast:', error);
+        const errorMessage = error.response?.data?.message || 'Failed to send broadcast';
+        toast.error(errorMessage + '\n\nCheck server console for details.');
+      } finally {
+        setSendingBroadcast(false);
+        closeToast();
       }
-      
-      alert(message);
-      
-      // Only close modal if all emails sent successfully
-      if (response.data.results && response.data.results.failed === 0) {
-        setShowBroadcastModal(false);
-        setBroadcastForm({ subject: '', message: '', sendToAll: false });
-      }
-    } catch (error) {
-      console.error('Error sending broadcast:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to send broadcast';
-      alert(errorMessage + '\n\nCheck server console for details.');
-    } finally {
-      setSendingBroadcast(false);
-    }
+    });
   };
 
   if (loading && !stats) {
@@ -168,6 +170,7 @@ const SubscriberManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       {/* Stats Cards */}
       {stats && (
@@ -478,8 +481,8 @@ const SubscriberManager = () => {
         </div>
       )}
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default SubscriberManager;
-

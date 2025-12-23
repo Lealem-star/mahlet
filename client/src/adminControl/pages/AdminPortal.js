@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import backgroundImage from '../../assets/moviehero.jpg';
 
 const AdminPortal = () => {
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div 
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
@@ -49,6 +52,8 @@ const AdminPortal = () => {
         </div>
       </div>
     </div>
+    <ToastContainer />
+    </>
   );
 };
 

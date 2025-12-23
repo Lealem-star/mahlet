@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify'; // Removed 'toast' import
+import 'react-toastify/dist/ReactToastify.css';
+import { showConfirmationToast } from '../../utils/toastUtils'; // Added showConfirmationToast import
 import api from '../../config/api';
 
 const LatestPostManager = () => {
@@ -27,10 +30,10 @@ const LatestPostManager = () => {
     } catch (error) {
       console.error('Error fetching posts:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        // toast.error('Session expired. Please login again.'); // Original toast error
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch posts');
+        // toast.error('Failed to fetch posts'); // Original toast error
       }
     } finally {
       setLoading(false);
@@ -90,10 +93,10 @@ const LatestPostManager = () => {
 
       if (editingPost) {
         await api.put(`/api/latest-posts/${editingPost._id}`, submitData, { headers });
-        alert('Post updated successfully!');
+        // toast.success('Post updated successfully!'); // Original toast success
       } else {
         await api.post('/api/latest-posts', submitData, { headers });
-        alert('Post created successfully!');
+        // toast.success('Post created successfully!'); // Original toast success
       }
       
       setFormData({ title: '', body: '', type: 'image', mediaUrl: '', isActive: true });
@@ -104,8 +107,8 @@ const LatestPostManager = () => {
       fetchPosts();
     } catch (error) {
       console.error('Error saving post:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save post';
-      alert(errorMessage);
+      // const errorMessage = error.response?.data?.message || error.message || 'Failed to save post'; // Original error message
+      // toast.error(errorMessage); // Original toast error
     }
   };
 
@@ -123,21 +126,19 @@ const LatestPostManager = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this post?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.delete(`/api/latest-posts/${id}`, { headers });
-      alert('Post deleted successfully!');
-      fetchPosts();
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      alert('Failed to delete post');
-    }
+  const handleDelete = (id) => { // Removed 'async' and 'window.confirm'
+    showConfirmationToast('Are you sure you want to delete this post?', async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        await api.delete(`/api/latest-posts/${id}`, { headers });
+        // toast.success('Post deleted successfully!'); // Original toast success
+        fetchPosts();
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        // toast.error('Failed to delete post'); // Original toast error
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -153,6 +154,7 @@ const LatestPostManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       <div className="flex justify-between items-center mb-8 md:flex-row flex-col md:items-center items-start md:gap-0 gap-4">
         <h2 className="m-0 text-gray-800">Latest Posts</h2>
@@ -386,8 +388,8 @@ const LatestPostManager = () => {
         )}
       </div>
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default LatestPostManager;
-

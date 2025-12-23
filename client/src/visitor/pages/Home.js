@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
 import { getImageUrl } from '../../utils/imageUrl';
 import mahletImage from '../../assets/mahlet solom.jpg';
+import trailerVideo from '../../assets/videos/trailer.mp4';
 
 const Home = () => {
   const [email, setEmail] = useState('');
@@ -151,13 +152,24 @@ const Home = () => {
         )}
       </section>
 
-
-
-
+      {/* Welcome Video Section */}
+      <section id="welcome-video" className="w-full mb-6">
+        <div className="relative w-full overflow-hidden bg-black" style={{ paddingTop: '56.25%' }}>
+          <video
+            className="absolute top-0 left-0 w-full h-full object-cover"
+            src={trailerVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+          />
+        </div>
+      </section>
 
 
       {/* Subscribe Section */}
-      <section id="contact" className="py-16 px-5 bg-transparent backdrop-blur-sm rounded-lg mx-4 mb-6">
+      <section id="contact" className="py-16 px-5 bg-transparent backdrop-blur-sm rounded-lg mx-4 mb-0">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-4xl font-bold text-amber-400 mb-6 text-center">Join the Family</h2>
           <p className="text-center text-amber-400/90 mb-8">

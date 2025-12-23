@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { showConfirmationToast } from '../../utils/toastUtils';
 import api from '../../config/api';
 
 const VideoManager = () => {
@@ -24,10 +27,8 @@ const VideoManager = () => {
     } catch (error) {
       console.error('Error fetching videos:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch videos');
       }
     } finally {
       setLoading(false);
@@ -75,7 +76,6 @@ const VideoManager = () => {
       } else if (uploadMethod === 'url' && formData.videoUrl) {
         submitData.append('videoUrl', formData.videoUrl);
       } else if (!editingVideo) {
-        alert('Please either upload a video file or provide a video URL');
         return;
       }
       
@@ -91,12 +91,10 @@ const VideoManager = () => {
         await api.put(`/api/header-poster/admin/videos/${editingVideo._id}`, submitData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        alert('Video updated successfully!');
       } else {
         await api.post('/api/header-poster/admin/videos', submitData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        alert('Video created successfully!');
       }
       
       setFormData({ videoUrl: '', position: 'left', altText: '', isActive: true });
@@ -108,8 +106,6 @@ const VideoManager = () => {
       fetchVideos();
     } catch (error) {
       console.error('Error saving video:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save video';
-      alert(errorMessage);
     }
   };
 
@@ -127,19 +123,15 @@ const VideoManager = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this video?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/api/header-poster/admin/videos/${id}`);
-      alert('Video deleted successfully!');
-      fetchVideos();
-    } catch (error) {
-      console.error('Error deleting video:', error);
-      alert('Failed to delete video');
-    }
+  const handleDelete = (id) => {
+    showConfirmationToast('Are you sure you want to delete this video?', async () => {
+      try {
+        await api.delete(`/api/header-poster/admin/videos/${id}`);
+        fetchVideos();
+      } catch (error) {
+        console.error('Error deleting video:', error);
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -156,6 +148,7 @@ const VideoManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       <div className="flex justify-between items-center mb-8 md:flex-row flex-col md:items-center items-start md:gap-0 gap-4">
         <h2 className="m-0 text-gray-800">HeaderPoster Videos</h2>
@@ -346,8 +339,8 @@ const VideoManager = () => {
         )}
       </div>
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default VideoManager;
-

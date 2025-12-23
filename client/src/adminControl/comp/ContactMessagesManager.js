@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import api from '../../config/api';
 
 const ContactMessagesManager = () => {
@@ -14,7 +16,7 @@ const ContactMessagesManager = () => {
         params.search = searchTerm;
       }
 
-      const response = await api.get('/api/subscribers/admin/subscribers', { params });
+      const response = await api.get('/api/subscribers/admin', { params });
       // Sort: unread first, then by date (newest first)
       const sorted = response.data.sort((a, b) => {
         // First sort by read status (unread first)
@@ -30,10 +32,10 @@ const ContactMessagesManager = () => {
     } catch (error) {
       console.error('Error fetching contact messages:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        toast.error('Session expired. Please login again.');
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch contact messages');
+        toast.error('Failed to fetch contact messages');
       }
     } finally {
       setLoading(false);
@@ -46,13 +48,14 @@ const ContactMessagesManager = () => {
 
   const handleMarkAsRead = async (id, currentReadStatus) => {
     try {
-      await api.put(`/api/subscribers/admin/subscribers/${id}`, {
+      await api.put(`/api/subscribers/admin/${id}`, {
         read: !currentReadStatus,
       });
       fetchMessages();
+      toast.success(currentReadStatus ? 'Message marked as unread!' : 'Message marked as read!');
     } catch (error) {
       console.error('Error updating read status:', error);
-      alert('Failed to update read status');
+      toast.error('Failed to update read status');
     }
   };
 
@@ -62,12 +65,12 @@ const ContactMessagesManager = () => {
     }
 
     try {
-      await api.delete(`/api/subscribers/admin/subscribers/${id}`);
-      alert('Message deleted successfully!');
+      await api.delete(`/api/subscribers/admin/${id}`);
+      toast.success('Message deleted successfully!');
       fetchMessages();
     } catch (error) {
       console.error('Error deleting message:', error);
-      alert('Failed to delete message');
+      toast.error('Failed to delete message');
     }
   };
 
@@ -76,6 +79,7 @@ const ContactMessagesManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       <div className="flex flex-row items-center justify-between gap-4 mb-8">
         <h2 className="m-0 text-gray-800 text-xl md:text-2xl font-semibold flex-shrink-0">Contact Messages</h2>
@@ -192,7 +196,8 @@ const ContactMessagesManager = () => {
         )}
       </div>
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default ContactMessagesManager;

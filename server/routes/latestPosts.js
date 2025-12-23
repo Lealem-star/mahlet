@@ -3,26 +3,23 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const LatestPost = require('../models/LatestPost');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// Create uploads directory for latest posts if it doesn't exist
-const latestPostsDir = path.join(__dirname, '../uploads/latest-posts');
-if (!fs.existsSync(latestPostsDir)) {
-  fs.mkdirSync(latestPostsDir, { recursive: true });
-}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// Configure storage for latest posts
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, latestPostsDir);
+// Configure storage for latest posts using Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'latest-posts',
+    format: async (req, file) => 'png', // supports promises. 
+    public_id: (req, file) => Date.now() + '-' + Math.round(Math.random() * 1E9), 
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext).replace(/\s+/g, '-');
-    cb(null, name + '-' + uniqueSuffix + ext);
-  }
 });
 
 const upload = multer({
@@ -74,10 +71,12 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     }
 
     let finalMediaUrl = mediaUrl;
+    let finalPublicId = null;
     
-    // If file was uploaded, use the uploaded file path
+    // If file was uploaded, use the uploaded file path and public_id
     if (req.file) {
-      finalMediaUrl = `/uploads/latest-posts/${req.file.filename}`;
+      finalMediaUrl = req.file.path;
+      finalPublicId = req.file.filename;
     }
 
     const post = await LatestPost.create({ 
@@ -85,6 +84,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       body, 
       type, 
       mediaUrl: finalMediaUrl, 
+      public_id: finalPublicId,
       isActive: isActive !== undefined ? isActive : true 
     });
     res.status(201).json(post);
@@ -104,18 +104,19 @@ router.put('/:id', auth, upload.single('file'), async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // If new file is uploaded, delete old file and use new one
+    // If new file is uploaded, delete old file from Cloudinary and use new one
     if (req.file) {
-      // Delete old file if it was an uploaded file
-      if (post.mediaUrl && post.mediaUrl.startsWith('/uploads/latest-posts')) {
-        const oldFilePath = path.join(__dirname, '..', post.mediaUrl);
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        }
+      if (post.public_id) {
+        await cloudinary.uploader.destroy(post.public_id);
       }
-      post.mediaUrl = `/uploads/latest-posts/${req.file.filename}`;
+      post.mediaUrl = req.file.path;
+      post.public_id = req.file.filename;
     } else if (mediaUrl !== undefined) {
       post.mediaUrl = mediaUrl;
+      if (post.public_id && !mediaUrl) { // If mediaUrl is being cleared, also clear public_id
+        await cloudinary.uploader.destroy(post.public_id);
+        post.public_id = null;
+      }
     }
 
     if (title !== undefined) post.title = title;
@@ -139,12 +140,9 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // Delete the file if it was an uploaded file
-    if (post.mediaUrl && post.mediaUrl.startsWith('/uploads/latest-posts')) {
-      const filePath = path.join(__dirname, '..', post.mediaUrl);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+    // Delete the file from Cloudinary if it was an uploaded file
+    if (post.public_id) {
+      await cloudinary.uploader.destroy(post.public_id);
     }
 
     await LatestPost.findByIdAndDelete(req.params.id);

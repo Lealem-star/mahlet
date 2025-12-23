@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify'; // Removed 'toast' import
+import 'react-toastify/dist/ReactToastify.css';
+import { showConfirmationToast } from '../../utils/toastUtils'; // Added showConfirmationToast import
 import api from '../../config/api';
 
 const ImageManager = () => {
@@ -25,10 +28,10 @@ const ImageManager = () => {
     } catch (error) {
       console.error('Error fetching images:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        // toast.error('Session expired. Please login again.'); // Original toast error
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch images');
+        // toast.error('Failed to fetch images'); // Original toast error
       }
     } finally {
       setLoading(false);
@@ -87,7 +90,7 @@ const ImageManager = () => {
         submitData.append('imageUrl', formData.imageUrl);
       } else if (!editingImage) {
         // For new images, require either file or URL
-        alert('Please either upload an image file or provide an image URL');
+        // toast.error('Please either upload an image file or provide an image URL'); // Original toast error
         return;
       }
       
@@ -108,7 +111,7 @@ const ImageManager = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        alert('Image updated successfully!');
+        // toast.success('Image updated successfully!'); // Original toast success
       } else {
         // Create new image
         await api.post('/api/header-poster/admin/images', submitData, {
@@ -116,7 +119,7 @@ const ImageManager = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        alert('Image created successfully!');
+        // toast.success('Image created successfully!'); // Original toast success
       }
       
       // Reset form and refresh list
@@ -129,8 +132,8 @@ const ImageManager = () => {
       fetchImages();
     } catch (error) {
       console.error('Error saving image:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save image';
-      alert(errorMessage);
+      // const errorMessage = error.response?.data?.message || error.message || 'Failed to save image'; // Original error message
+      // toast.error(errorMessage);
     }
   };
 
@@ -151,19 +154,17 @@ const ImageManager = () => {
   };
 
   // Handle delete
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this image?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/api/header-poster/admin/images/${id}`);
-      alert('Image deleted successfully!');
-      fetchImages();
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      alert('Failed to delete image');
-    }
+  const handleDelete = (id) => { // Removed 'async' and 'window.confirm'
+    showConfirmationToast('Are you sure you want to delete this image?', async () => {
+      try {
+        await api.delete(`/api/header-poster/admin/images/${id}`);
+        // toast.success('Image deleted successfully!'); // Original toast success
+        fetchImages();
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        // toast.error('Failed to delete image'); // Original toast error
+      }
+    });
   };
 
   // Cancel form
@@ -181,6 +182,7 @@ const ImageManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       <div className="flex justify-between items-center mb-8 md:flex-row flex-col md:items-center items-start md:gap-0 gap-4">
         <h2 className="m-0 text-gray-800">HeaderPoster Images</h2>
@@ -372,8 +374,8 @@ const ImageManager = () => {
         )}
       </div>
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default ImageManager;
-

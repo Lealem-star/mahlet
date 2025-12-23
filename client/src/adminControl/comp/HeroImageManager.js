@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { showConfirmationToast } from '../../utils/toastUtils'; // Added showConfirmationToast import
 import api from '../../config/api';
 
 const HeroImageManager = () => {
@@ -24,10 +27,10 @@ const HeroImageManager = () => {
     } catch (error) {
       console.error('Error fetching hero images:', error);
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        // toast.error('Session expired. Please login again.'); // Original toast error
         window.location.href = '/login';
       } else {
-        alert('Failed to fetch hero images');
+        // toast.error('Failed to fetch hero images'); // Original toast error
       }
     } finally {
       setLoading(false);
@@ -75,7 +78,7 @@ const HeroImageManager = () => {
       } else if (uploadMethod === 'url' && formData.imageUrl) {
         submitData.append('imageUrl', formData.imageUrl);
       } else if (!editingImage) {
-        alert('Please either upload an image file or provide an image URL');
+        // toast.error('Please either upload an image file or provide an image URL'); // Original toast error
         return;
       }
 
@@ -93,14 +96,14 @@ const HeroImageManager = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        alert('Hero image updated successfully!');
+        // toast.success('Hero image updated successfully!'); // Original toast success
       } else {
         await api.post('/api/home-hero/admin/images', submitData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
-        alert('Hero image created successfully!');
+        // toast.success('Hero image created successfully!'); // Original toast success
       }
 
       setFormData({ imageUrl: '', altText: '', order: 0, isActive: true });
@@ -112,9 +115,9 @@ const HeroImageManager = () => {
       fetchImages();
     } catch (error) {
       console.error('Error saving hero image:', error);
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Failed to save hero image';
-      alert(errorMessage);
+      // const errorMessage =
+      //   error.response?.data?.message || error.message || 'Failed to save hero image'; // Original error message
+      // toast.error(errorMessage); // Original toast error
     }
   };
 
@@ -132,19 +135,17 @@ const HeroImageManager = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this hero image?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/api/home-hero/admin/images/${id}`);
-      alert('Hero image deleted successfully!');
-      fetchImages();
-    } catch (error) {
-      console.error('Error deleting hero image:', error);
-      alert('Failed to delete hero image');
-    }
+  const handleDelete = (id) => { // Removed 'async' and 'window.confirm'
+    showConfirmationToast('Are you sure you want to delete this hero image?', async () => {
+      try {
+        await api.delete(`/api/home-hero/admin/images/${id}`);
+        // toast.success('Hero image deleted successfully!'); // Original toast success
+        fetchImages();
+      } catch (error) {
+        console.error('Error deleting hero image:', error);
+        // toast.error('Failed to delete hero image'); // Original toast error
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -161,6 +162,7 @@ const HeroImageManager = () => {
   }
 
   return (
+    <>
     <div className="w-full">
       <div className="flex justify-between items-center mb-8 md:flex-row flex-col md:items-center items-start md:gap-0 gap-4">
         <h2 className="m-0 text-gray-800">Home Hero Images</h2>
@@ -294,7 +296,7 @@ const HeroImageManager = () => {
                 value={formData.order}
                 onChange={handleChange}
                 min="0"
-                className="w-full p-2.5 border border-gray-300 rounded text-base box-border focus:outline-none focus:border-[#61dafb] focus:ring-2 focus:ring-[#61dafb]/20"
+                className="w-full p-2.5 border border-gray-300 rounded text-base box-border focus:outline-none focus:ring-2 focus:ring-[#61dafb] focus:border-[#61dafb]"
               />
             </div>
 
@@ -387,9 +389,8 @@ const HeroImageManager = () => {
         )}
       </div>
     </div>
-  );
+    <ToastContainer />
+  </>);
 };
 
 export default HeroImageManager;
-
-

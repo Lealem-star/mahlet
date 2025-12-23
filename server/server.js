@@ -36,9 +36,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 // Routes
-app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to MERN Stack API' });
-});
 
 app.use('/api', routes);
 app.use('/api/auth', require('./routes/auth'));

@@ -1,4 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import ImageManager from '../comp/ImageManager';
 import HeroImageManager from '../comp/HeroImageManager';
 import VideoManager from '../comp/VideoManager';
@@ -9,6 +11,7 @@ import AdminManager from '../comp/AdminManager';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import backgroundImage from '../../assets/moviehero.jpg';
+import api from '../../config/api'; // Import the api utility
 
 const navItems = [
   {
@@ -60,58 +63,32 @@ const AdminDashboard = () => {
   const { user, logout, updateProfile } = useContext(AuthContext);
   const navigate = useNavigate();
   const avatarUrl = user?.avatar;
-  const [messageCount, setMessageCount] = useState(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0); // Renamed for clarity
 
   useEffect(() => {
     let mounted = true;
     let timerId = null;
 
-    async function fetchUnread() {
+    async function fetchUnreadMessageCount() {
       try {
-        const endpoints = [
-          '/api/contact-messages/unread-count',
-          '/api/contact-messages/unread',
-          '/api/contact-messages?unread=true',
-          '/api/contact-messages/count?unread=true',
-          '/api/messages/unread-count',
-          '/api/messages/unread',
-        ];
-
-        for (const ep of endpoints) {
-          try {
-            const res = await fetch(ep);
-            if (!res.ok) continue;
-            const data = await res.json();
-            let count = 0;
-
-            if (typeof data === 'number') {
-              count = data;
-            } else if (Array.isArray(data)) {
-              // If items have a `read` flag, count unread
-              if (data.length > 0 && Object.prototype.hasOwnProperty.call(data[0], 'read')) {
-                count = data.filter((m) => !m.read).length;
-              } else {
-                count = data.length;
-              }
-            } else if (data && typeof data === 'object') {
-              count = data.unread || data.unreadCount || data.unread_count || data.count || data.total || 0;
-            }
-
-            if (mounted) setMessageCount(Number(count) || 0);
-            break;
-          } catch (err) {
-            continue;
-          }
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await api.get('/api/subscribers/admin/unread-contact-count', { headers });
+        if (mounted) {
+          setUnreadMessageCount(response.data.count || 0);
         }
       } catch (err) {
-        // ignore
+        console.error('Error fetching unread message count:', err);
+        if (mounted) {
+          setUnreadMessageCount(0); // Reset count on error
+        }
       }
     }
 
-    // initial fetch
-    fetchUnread();
-    // poll every 5s for near real-time updates
-    timerId = setInterval(fetchUnread, 5000);
+    // Initial fetch
+    fetchUnreadMessageCount();
+    // Poll every 5s for near real-time updates
+    timerId = setInterval(fetchUnreadMessageCount, 5000);
 
     return () => {
       mounted = false;
@@ -128,7 +105,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen p-5 relative">
+    <React.Fragment>
+      <div className="min-h-screen p-5 relative">
+
       <div
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
         style={{
@@ -165,14 +144,14 @@ const AdminDashboard = () => {
                 setActiveTab('myfan');
                 setActiveSubTab('messages');
                 closeMobileMenu();
-                setMessageCount(0);
+                // Optionally refetch count or decrement if navigating to messages
               }}
             >
               <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              {messageCount > 0 && (
-                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">{messageCount}</span>
+              {unreadMessageCount > 0 && (
+                <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full border border-white">{unreadMessageCount}</span>
               )}
             </button>
           </div>
@@ -251,6 +230,11 @@ const AdminDashboard = () => {
                               }`}
                           >
                             {subTab.label}
+                            {subTab.id === 'messages' && unreadMessageCount > 0 && (
+                                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                                    {unreadMessageCount}
+                                </span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -359,6 +343,11 @@ const AdminDashboard = () => {
                               }`}
                           >
                             {subTab.label}
+                            {subTab.id === 'messages' && unreadMessageCount > 0 && (
+                                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                                    {unreadMessageCount}
+                                </span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -459,14 +448,14 @@ const AdminDashboard = () => {
                 onClick={() => {
                   setActiveTab('myfan');
                   setActiveSubTab('messages');
-                  setMessageCount(0);
+                  setUnreadMessageCount(0);
                 }}
               >
                 <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                {messageCount > 0 && (
-                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">{messageCount}</span>
+                {unreadMessageCount > 0 && (
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full border border-white">{unreadMessageCount}</span>
                 )}
               </button>
             </div>
@@ -594,9 +583,10 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <ToastContainer />
+    </React.Fragment>
   );
 };
 
 export default AdminDashboard;
-

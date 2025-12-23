@@ -173,7 +173,7 @@ const HeaderPoster = () => {
 
     return (
         <div className="w-full bg-transparent relative z-[1000]">
-            <div className="flex w-full h-[200px] overflow-hidden md:flex-row flex-col md:h-[200px] h-[150px] gap-2 md:gap-4">
+            <div className="flex w-full h-[100px] overflow-hidden md:flex-row flex-col md:h-[100px] h-[75px] gap-2 md:gap-4">
                 {/* Left Video */}
                 <div className="flex-1 relative overflow-hidden hidden md:block">
                     {videoErrors.left ? (

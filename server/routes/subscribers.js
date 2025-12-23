@@ -157,7 +157,7 @@ router.post('/unsubscribe', async (req, res) => {
 });
 
 // Get all subscribers (admin only - protected)
-router.get('/admin/subscribers', auth, async (req, res) => {
+router.get('/admin', auth, async (req, res) => {
   if (!isDBConnected()) {
     return res.status(503).json({ 
       message: 'Database not available. Please check MongoDB connection.',
@@ -199,7 +199,7 @@ router.get('/admin/subscribers', auth, async (req, res) => {
 });
 
 // Get subscriber stats (admin only - protected)
-router.get('/admin/subscribers/stats', auth, async (req, res) => {
+router.get('/admin/stats', auth, async (req, res) => {
   if (!isDBConnected()) {
     return res.status(503).json({ 
       message: 'Database not available. Please check MongoDB connection.',
@@ -237,8 +237,25 @@ router.get('/admin/subscribers/stats', auth, async (req, res) => {
   }
 });
 
+router.get('/admin/unread-contact-count', auth, async (req, res) => {
+  if (!isDBConnected()) {
+    return res.status(503).json({ 
+      message: 'Database not available. Please check MongoDB connection.',
+      count: 0
+    });
+  }
+
+  try {
+    const count = await Subscriber.countDocuments({ source: 'partner', read: false });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error fetching unread contact message count:', error.message);
+    res.status(500).json({ message: error.message, count: 0 });
+  }
+});
+
 // Update subscriber (admin only - protected)
-router.put('/admin/subscribers/:id', auth, async (req, res) => {
+router.put('/admin/:id', auth, async (req, res) => {
   if (!isDBConnected()) {
     return res.status(503).json({ message: 'Database not available. Please check MongoDB connection.' });
   }
@@ -282,7 +299,7 @@ router.put('/admin/subscribers/:id', auth, async (req, res) => {
 });
 
 // Delete subscriber (admin only - protected)
-router.delete('/admin/subscribers/:id', auth, async (req, res) => {
+router.delete('/admin/:id', auth, async (req, res) => {
   if (!isDBConnected()) {
     return res.status(503).json({ message: 'Database not available. Please check MongoDB connection.' });
   }
