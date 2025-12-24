@@ -4,7 +4,7 @@ let isConnected = false;
 
 const connectDB = async () => {
   try {
-    const MONGODB_URI = process.env.ma_MONGODB_URI || 'mongodb+srv://Vercel-Admin-atlas-orange-village:bJsQ16KP1ylEmBjQ@atlas-orange-village.tsgnrvo.mongodb.net/?retryWrites=true&w=majority';
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://meseretlealem8_db_user:LdYsPt98Ik4j2nMo@cluster0.tyhjdyb.mongodb.net/?appName=Cluster0';
     console.log(`Attempting to connect with MONGODB_URI: ${MONGODB_URI}`);
     
     // Validate URI is a string
