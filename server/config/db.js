@@ -4,7 +4,7 @@ let isConnected = false;
 
 const connectDB = async () => {
   try {
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mernapp';
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://meseretlealem8_db_user:LdYsPt98Ik4j2nMo@cluster0.tyhjdyb.mongodb.net/?appName=Cluster0';
     console.log(`Attempting to connect with MONGODB_URI: ${MONGODB_URI}`);
     
     // Validate URI is a string
