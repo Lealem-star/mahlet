@@ -177,6 +177,13 @@ const ImageManager = () => {
     setUploadMethod('file');
   };
 
+  const removeDataPrefix = (url) => {
+    if (url && url.startsWith('data:')) {
+      return '[Data URL - truncated]'; // Or return url.substring(url.indexOf(',') + 1) if full data is needed
+    }
+    return url;
+  };
+
   if (loading) {
     return <div className="text-center py-10 text-gray-600 text-xl">Loading images...</div>;
   }
@@ -344,7 +351,7 @@ const ImageManager = () => {
                     alt={image.altText}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                      e.target.src = 'https://placehold.co/300x200?text=Image+Not+Found';
                     }}
                   />
                   {!image.isActive && <div className="absolute top-2.5 right-2.5 bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold">Inactive</div>}
@@ -352,7 +359,7 @@ const ImageManager = () => {
                 <div className="p-4">
                   <p className="font-semibold text-gray-800 m-0 mb-2">{image.altText}</p>
                   <p className="text-gray-600 text-sm m-0 mb-2">Order: {image.order}</p>
-                  <p className="text-gray-400 text-xs m-0 break-all font-mono">{image.imageUrl}</p>
+                  <p className="text-gray-400 text-xs m-0 break-all font-mono">{removeDataPrefix(image.imageUrl)}</p>
                 </div>
                 <div className="p-4 border-t border-gray-200 flex gap-2.5">
                   <button 
